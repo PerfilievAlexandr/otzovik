@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Auth {
+  id       String @default(uuid()) @id
+  email    String @unique
+  password String
+}
+
+model ProductCharacteristics {
+  id       String    @default(uuid()) @id
+  name     String
+  value    String
+  products Product[] @relation(references: [id])
+}
+
+model ProductCategory {
+  id       String    @id @default(uuid())
+  name     String
+  products Product[] @relation(references: [id])
+}
+
+model Product {
+  id               String                  @default(uuid()) @id
+  image            String
+  title            String
+  price            Int
+  oldPrice         Int
+  credit           Int
+  calculatedRating Int
+  description      String
+  advantages       String
+  disAdvantages    String
+  categories       ProductCategory[]        @relation(references: [id])
+  tags             String
+  characteristics  ProductCharacteristics[] @relation(references: [id])
+  reviews          Review[]
+}
+
+model Review {
+  id          String   @default(uuid()) @id
+  name        String
+  title       String
+  description String
+  rating      Int
+  createdAt   DateTime @default(now())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+enum TopLevelCategory {
+  Courses
+  Services
+  Books
+  Products
+}
+
+model VacancyHh {
+    id           String  @default(uuid()) @id
+    pageId       String?
+    page         Page?   @relation(fields: [pageId], references: [id])
+    countNumber  Int
+    juniorSalary Int
+    seniorSalary Int
+}
+
+model Advantage {
+    id           String @default(uuid()) @id
+    pageId       String
+    page         Page   @relation(fields: [pageId], references: [id])
+    title        String
+    description  String
+}
+
+model Tag {
+    id           String @default(uuid()) @id
+    pageId       String
+    page         Page   @relation(fields: [pageId], references: [id])
+    text         String
+}
+
+model Page {
+  id                  String           @default(uuid()) @id
+  firstLevelCategory  TopLevelCategory
+  secondLevelCategory String
+  title               String
+  category            String
+  vacancyHh           VacancyHh?
+  advantages          Advantage[]
+  seoText             String
+  tagsTitle           String
+  tags                Tag[]
+}
