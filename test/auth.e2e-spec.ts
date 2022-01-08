@@ -1,70 +1,66 @@
-import { v4 as uuidv4 } from 'uuid';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
-import { ReviewModule } from '../src/review/review.module';
-import { CreateReviewDto } from '../src/review/dto/create-review.dto';
+import { AuthModule } from '../src/auth/auth.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { UserDto } from '../src/auth/dto/user.dto';
+import { USER_ALREADY_EXISTS_ERROR } from '../src/auth/auth.constants';
 
-const testDto: CreateReviewDto = {
-  name: 'Test',
-  title: 'Title',
-  description: 'It is description',
-  rating: 5,
-  productId: uuidv4(),
-};
-
-const loginData: UserDto = {
-  login: 'w@m.ru',
+const registerData: UserDto = {
+  login: 'e@m.ru',
   password: '1234',
 };
 
-describe('ReviewModule (e2e)', () => {
+describe('AuthModule (e2e)', () => {
   let app: INestApplication;
   let createdId: string;
-  let token;
+  let token: string;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [ReviewModule],
+      imports: [AuthModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
-
-    const { body } = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send(loginData);
-    token = body.access_token;
   });
 
-  it('/review/create (POST)', async (done) => {
+  it('/auth/register (POST)', async () => {
     return request(app.getHttpServer())
-      .post('/review/create')
-      .send(testDto)
+      .post('/auth/register')
+      .send(registerData)
       .expect(201)
       .then(({ body }: request.Response) => {
         createdId = body.id;
         expect(createdId).toBeDefined();
-        done();
       });
   });
 
-  it('/review/by-product/:productId (GET)', () => {
+  it('/auth/login (POST)', async () => {
     return request(app.getHttpServer())
-      .get(`/review/by-product/${uuidv4()}`)
-      .set('Authorization', `Bearer ${token}`)
+      .post('/auth/login')
+      .send(registerData)
       .expect(200)
       .then(({ body }: request.Response) => {
-        expect(body.length).toBe(0);
+        token = body.access_token;
+        expect(token).toBeDefined();
       });
   });
 
-  it('/review/:id (DELETE)', () => {
+  it('/auth/register (POST) error', async () => {
     return request(app.getHttpServer())
-      .delete(`/review/${uuidv4()}`)
-      .set('Authorization', `Bearer ${token}`)
+      .post('/auth/register')
+      .send(registerData)
+      .expect(400, {
+        statusCode: 400,
+        message: USER_ALREADY_EXISTS_ERROR,
+        error: 'Bad Request',
+      });
+  });
+
+  it('/auth/user/:id (DELETE)', () => {
+    return request(app.getHttpServer())
+      .delete(`/auth/user/${createdId}`)
       .expect(200);
   });
 
